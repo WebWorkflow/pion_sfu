@@ -1,4 +1,4 @@
-package main
+package SFUtypes
 
 type Lobby interface {
 	CreateRoom()
@@ -10,7 +10,7 @@ type Coordinator struct {
 	sessioins map[int]Room
 }
 
-// Coordinator
+//Coordinator
 func NewCoordinator() *Coordinator {
 	return &Coordinator{sessioins: map[int]Room{}}
 }

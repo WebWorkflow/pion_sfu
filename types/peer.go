@@ -1,8 +1,7 @@
-package main
+package SFUtypes
 
 import (
 	"sync"
-
 	"github.com/pion/webrtc/v3"
 )
 
