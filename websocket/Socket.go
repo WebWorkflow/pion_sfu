@@ -78,5 +78,9 @@ func answerToPeer(conn *websocket.Conn, message string) {
 
 type WsMessage struct {
 	event string
-	data  string
+	data  any
+}
+
+func newMessage(evt string, data any) WsMessage {
+	return WsMessage{event: evt, data: data}
 }

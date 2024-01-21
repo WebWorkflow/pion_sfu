@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/pion/webrtc/v3"
+
+	"pion_sfu/websocket"
 )
 
 type Session interface {
@@ -76,6 +78,14 @@ func (r *Room) RemoveTrack(track *webrtc.TrackLocalStaticRTP) {
 	delete(r.tracks, track.ID())
 }
 
+func (room *Room) BroadCast(message websocket.WsMessage) {
+	room.mutex.Lock()
+	defer room.mutex.Unlock()
+	for _, rec := range room.peers {
+		rec.socket.WriteJSON(message)
+	}
+}
+
 func (room *Room) Signal() {
 	room.mutex.Lock()
 	defer room.mutex.Unlock()
@@ -135,8 +145,8 @@ func (room *Room) Signal() {
 			if err != nil {
 				return true
 			}
-
-			// TODO: Send offer
+			msg := websocket.newMessage("offer", offerString)
+			room.BroadCast(msg)
 
 		}
 		return
