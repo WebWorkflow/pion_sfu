@@ -1,15 +1,17 @@
 package websocket
 
 import (
-	"encoding/json"
+	
 	"fmt"
-	"log"
+	
 	"net/http"
 
 	"github.com/gorilla/websocket"
 )
 
-// var clients map[*websocket.Conn]bool
+
+
+
 var upgrader = websocket.Upgrader{
 	//Hey CORS, fuck u
 	CheckOrigin: func(r *http.Request) bool {
@@ -21,7 +23,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // websockets listener
-func wsHandler(w http.ResponseWriter, r *http.Request) {
+func (ws *Wserver) wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 
@@ -39,24 +41,31 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(" successfully")
 
 	message := &WsMessage{}
+	
 	for {
-		mt, msg, err := conn.ReadMessage() //message type int, byte[], err
+		msg:= conn.ReadJSON(conn) //deserialization doesn't work on that method
 
-		if err != nil || mt == websocket.CloseMessage {
-			log.Println(err)
-			return
-		} else if e := json.Unmarshal(msg, &message); e != nil {
-			log.Println(err)
-			return
-		}
+		// if err != nil || mt == websocket.CloseMessage {
+		// 	log.Println(err)
+		// 	return
+		// } else if e := json.Unmarshal(msg, &message); e != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
 
 		switch message.event {
 		case "offer":
-			go func() {}()
+			go func() {
+				ws.broadcastJSON(&msg)
+			}()
 		case "answer":
-			go func() {}()
+			go func() {
+				ws.broadcastJSON(&msg)
+			}()
 		case "ice-candidate":
-			go func() {}()
+			go func() {
+				ws.broadcastJSON(&msg)
+			}()
 		case "join":
 			go func() {}()
 		case "leave":
@@ -66,15 +75,26 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func answerToPeer(conn *websocket.Conn, message string) {
-	conn.WriteMessage(websocket.TextMessage, []byte(message))
+func(ws *Wserver) answerToPeer( message string) {
+	ws.myconn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-// func broadcast(message []byte) {
-// 	for conn := range clients {
-// 		conn.WriteMessage(websocket.TextMessage, message)
-// 	}
-// }
+func (ws *Wserver) broadcastJSON( message *WsMessage){
+	for allconn,_ :=range ws.clients{
+		if (ws.myconn==allconn){
+           continue
+		} else {
+			allconn.writeJSON(&message)
+		}
+	}
+}
+
+
+type Wserver struct{
+	myconn *websocket.Conn
+    clients map[*websocket.Conn]bool
+}
+
 
 type WsMessage struct {
 	event string
@@ -84,3 +104,6 @@ type WsMessage struct {
 func newMessage(evt string, data any) WsMessage {
 	return WsMessage{event: evt, data: data}
 }
+
+
+
