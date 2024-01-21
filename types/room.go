@@ -11,11 +11,6 @@ import (
 type Session interface {
 	AddPeer(peer *Peer)
 	RemovePeer(peer_id string)
-	// Subscribe(peer *Peer)
-	// Publish(peer *Peer)
-	// Unsubscribe(peer *Peer)
-	// Unpublish(peer *Peer)
-	// GetPeers() []Peer
 	AddTrack(track *webrtc.TrackRemote)
 	RemoveTrack(track *webrtc.TrackRemote)
 	Signal()

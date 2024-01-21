@@ -11,4 +11,5 @@ type Peer struct {
 	connection *webrtc.PeerConnection
 	streams    map[string]*webrtc.TrackRemote
 	mutex      sync.RWMutex
+	// socket ?
 }

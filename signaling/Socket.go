@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -36,24 +38,30 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(" successfully")
 
+	message := &WsMessage{}
 	for {
-		mt, message, err := conn.ReadMessage() //message type int, byte[], err
+		mt, msg, err := conn.ReadMessage() //message type int, byte[], err
 
 		if err != nil || mt == websocket.CloseMessage {
-			break
+			log.Println(err)
+			return
+		} else if e := json.Unmarshal(msg, &message); e != nil {
+			log.Println(err)
+			return
 		}
 
-		switch string(message) {
+		switch message.event {
 		case "offer":
-			go answerToPeer(conn, "That's ur answer")
-			break
-
+			go func() {}()
 		case "answer":
-			go answerToPeer(conn, "Connection established")
-			break
-
+			go func() {}()
+		case "ice-candidate":
+			go func() {}()
+		case "join":
+			go func() {}()
+		case "leave":
+			go func() {}()
 		}
-
 	}
 
 }
