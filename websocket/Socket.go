@@ -1,12 +1,13 @@
 package websocket
 
 import (
-	
 	"fmt"
-	
+
 	"net/http"
 	"pion_sfu/types"
+
 	"github.com/gorilla/websocket"
+	"github.com/pion/webrtc/v3/pkg/null"
 )
 
 
@@ -19,6 +20,17 @@ var upgrader = websocket.Upgrader{
 
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+}
+
+func StartServer() *Wserver {
+    server := Wserver{
+        make(map[*websocket.Conn]bool),
+    }
+
+    http.HandleFunc("/", server.wsInit)
+    go http.ListenAndServe(":8080", nil)
+
+    return &server
 }
 
 	
@@ -46,20 +58,25 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 	message := &WsMessage{}
 	
 	for {
-		message= conn.ReadJSON(conn) //deserialization doesn't work on that method
+		 conn.ReadJSON(&message) //deserialization doesn't work on that method
 
 		switch message.event {
 		case "offer":
 			go func() {
-				ws.broadcastJSON(&msg)
+				peer,roomID,err:=coordinator.findInRoom(conn.LocalAddr())
+				if err!=null{
+					return 
+				}
+				peer.connection
+				ws.broadcastJSON(&message,conn,roomID)
 			}()
 		case "answer":
 			go func() {
-				ws.broadcastJSON(&msg)
+				ws.broadcastJSON(&message,conn)
 			}()
 		case "ice-candidate":
 			go func() {
-				ws.broadcastJSON(&msg)
+				ws.broadcastJSON(&message,conn)
 			}()
 		case "join":
 			go func() {
@@ -75,13 +92,13 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func(ws *Wserver) answerToPeer( message string) {
-	ws.myconn.WriteMessage(websocket.TextMessage, []byte(message))
+func(ws *Wserver) answerToPeer( message string,conn *websocket.Conn) {
+	conn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-func (ws *Wserver) broadcastJSON( message *WsMessage){
+func (ws *Wserver) broadcastJSON( message *WsMessage, conn *websocket.Conn){
 	for allconn,_ :=range ws.clients{
-		if (ws.myconn==allconn){
+		if (conn==allconn){
            continue
 		} else {
 			allconn.writeJSON(&message)
@@ -91,7 +108,6 @@ func (ws *Wserver) broadcastJSON( message *WsMessage){
 
 
 type Wserver struct{
-	myconn *websocket.Conn
     clients map[*websocket.Conn] bool
 }
 

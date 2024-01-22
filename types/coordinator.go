@@ -1,6 +1,10 @@
 package types
 
-import ("github.com/gorilla/websocket")
+import (
+	"fmt"
+
+	"github.com/gorilla/websocket"
+)
 type Lobby interface {
 	CreateRoom()
 	RemoveRoom()
@@ -24,21 +28,40 @@ func (c *Coordinator) RemoveRoom(id string) {
 	delete(c.sessioins, id)
 }
 
+
+//bind
+
+
+
 func (c *Coordinator) addUserToRoom(id string,socket *websocket.Conn){
 	room,exist:=c.sessioins[id]
+	peer:=newPeer(socket.LocalAddr().String())
+	peer.SetSocket(socket)
 	if exist{
-		room.addUser(socket)
+		room.AddPeer(peer)
 	} else {
         c.CreateRoom(id)
-		room.addUser(socket)
+		room.AddPeer(peer)
 	}
 }
 
-func (c *Coordinator) removeUserFromRoom(id string){
+func (c *Coordinator) removeUserFromRoom(id string,socketLocalAddr string){
 	room,exist:=c.sessioins[id]
-	if exist==false{
+	if !exist{
 		return
 	}
+	room.RemovePeer(socketLocalAddr)
+}
 
-	room.removeUser(id)
+func (c *Coordinator) findInRoom(LocalAddr string) (*Peer,string,error){
+	for roomID,room :=range c.sessioins{
+        peer, exist := room.peers[LocalAddr]
+
+		if exist {
+			return peer, roomID, nil
+		}
+	}
+	return newPeer(""),"",fmt.Errorf("Rooms don't include such user")
+
+
 }
