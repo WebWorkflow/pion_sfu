@@ -1,5 +1,6 @@
-package SFUtypes
+package types
 
+import ("github.com/gorilla/websocket")
 type Lobby interface {
 	CreateRoom()
 	RemoveRoom()
@@ -21,4 +22,23 @@ func (c *Coordinator) CreateRoom(id string) {
 
 func (c *Coordinator) RemoveRoom(id string) {
 	delete(c.sessioins, id)
+}
+
+func (c *Coordinator) addUserToRoom(id string,socket *websocket.Conn){
+	room,exist:=c.sessioins[id]
+	if exist{
+		room.addUser(socket)
+	} else {
+        c.CreateRoom(id)
+		room.addUser(socket)
+	}
+}
+
+func (c *Coordinator) removeUserFromRoom(id string){
+	room,exist:=c.sessioins[id]
+	if exist==false{
+		return
+	}
+
+	room.removeUser(id)
 }

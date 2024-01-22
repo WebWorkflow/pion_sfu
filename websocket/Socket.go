@@ -5,7 +5,7 @@ import (
 	"fmt"
 	
 	"net/http"
-
+	"pion_sfu/types"
 	"github.com/gorilla/websocket"
 )
 
@@ -13,7 +13,6 @@ import (
 
 
 var upgrader = websocket.Upgrader{
-	//Hey CORS, fuck u
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
@@ -22,10 +21,14 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+	
 // websockets listener
-func (ws *Wserver) wsHandler(w http.ResponseWriter, r *http.Request) {
+func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
+
+	coordinator:=types.NewCoordinator()
+	
 
 	defer conn.Close()
 
@@ -36,22 +39,14 @@ func (ws *Wserver) wsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//clientID:=conn.clientID
-
 	fmt.Println(" successfully")
+
+	
 
 	message := &WsMessage{}
 	
 	for {
-		msg:= conn.ReadJSON(conn) //deserialization doesn't work on that method
-
-		// if err != nil || mt == websocket.CloseMessage {
-		// 	log.Println(err)
-		// 	return
-		// } else if e := json.Unmarshal(msg, &message); e != nil {
-		// 	log.Println(err)
-		// 	return
-		// }
+		message= conn.ReadJSON(conn) //deserialization doesn't work on that method
 
 		switch message.event {
 		case "offer":
@@ -67,13 +62,18 @@ func (ws *Wserver) wsHandler(w http.ResponseWriter, r *http.Request) {
 				ws.broadcastJSON(&msg)
 			}()
 		case "join":
-			go func() {}()
+			go func() {
+             coordinator.addUserToRoom(message.data,conn)
+			}()
 		case "leave":
-			go func() {}()
+			go func() {
+				coordinator.removeUserFromRoom(message.data)
+			}()
 		}
+	
 	}
-
 }
+
 
 func(ws *Wserver) answerToPeer( message string) {
 	ws.myconn.WriteMessage(websocket.TextMessage, []byte(message))
@@ -92,7 +92,11 @@ func (ws *Wserver) broadcastJSON( message *WsMessage){
 
 type Wserver struct{
 	myconn *websocket.Conn
-    clients map[*websocket.Conn]bool
+    clients map[*websocket.Conn] bool
+}
+
+func newWSServer () *Wserver{
+	return &Wserver{}
 }
 
 
@@ -101,9 +105,10 @@ type WsMessage struct {
 	data  any
 }
 
-func newMessage(evt string, data any) WsMessage {
-	return WsMessage{event: evt, data: data}
+func newMessage(evt string, data any) *WsMessage {
+	return &WsMessage{event: evt, data: data}
 }
+
 
 
 
