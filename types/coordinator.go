@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -28,6 +26,7 @@ func (coordinator *Coordinator) RemoveRoom(id string) {
 	delete(coordinator.sessioins, id)
 }
 
+// TODO fix it
 func (coordinator *Coordinator) addUserToRoom(id string, socket *websocket.Conn) {
 	room, exist := coordinator.sessioins[id]
 	peer := newPeer(socket.LocalAddr().String())
@@ -40,6 +39,7 @@ func (coordinator *Coordinator) addUserToRoom(id string, socket *websocket.Conn)
 	}
 }
 
+// TODO fix it
 func (coordinator *Coordinator) removeUserFromRoom(id string, socketLocalAddr string) {
 	room, exist := coordinator.sessioins[id]
 	if !exist {
@@ -48,18 +48,6 @@ func (coordinator *Coordinator) removeUserFromRoom(id string, socketLocalAddr st
 	room.RemovePeer(socketLocalAddr)
 }
 
-func (coordinator *Coordinator) findInRoom(LocalAddr string) (*Peer, string, error) {
-	for roomID, room := range coordinator.sessioins {
-		peer, exist := room.peers[LocalAddr]
-
-		if exist {
-			return peer, roomID, nil
-		}
-	}
-	return newPeer(""), "", fmt.Errorf("Rooms don't include such user")
-
-}
-
-func (coordinator *Coordinator) ObtainEvent(message any, socket *websocket.Conn) {
-
+func (coordinator *Coordinator) ObtainEvent(message any) {
+	// TODO add events
 }

@@ -33,9 +33,8 @@ func StartServer() *Wserver {
 func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
-
 	coordinator := types.NewCoordinator()
-
+	// TODO add socket to peer
 	defer conn.Close()
 
 	fmt.Printf("Client connected")
@@ -51,11 +50,7 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		conn.ReadJSON(&message) //deserialization doesn't work on that method
-		if message.event == "offer" {
-			coordinator.ObtainEvent(message, conn)
-		} else {
-			coordinator.ObtainEvent(message, nil)
-		}
+		coordinator.ObtainEvent(message)
 
 	}
 }
