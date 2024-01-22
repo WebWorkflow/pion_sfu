@@ -20,36 +20,36 @@ func NewCoordinator() *Coordinator {
 	return &Coordinator{sessioins: map[string]Room{}}
 }
 
-func (c *Coordinator) CreateRoom(id string) {
-	c.sessioins[id] = NewRoom(id)
+func (coordinator *Coordinator) CreateRoom(id string) {
+	coordinator.sessioins[id] = NewRoom(id)
 }
 
-func (c *Coordinator) RemoveRoom(id string) {
-	delete(c.sessioins, id)
+func (coordinator *Coordinator) RemoveRoom(id string) {
+	delete(coordinator.sessioins, id)
 }
 
-func (c *Coordinator) addUserToRoom(id string, socket *websocket.Conn) {
-	room, exist := c.sessioins[id]
+func (coordinator *Coordinator) addUserToRoom(id string, socket *websocket.Conn) {
+	room, exist := coordinator.sessioins[id]
 	peer := newPeer(socket.LocalAddr().String())
 	peer.SetSocket(socket)
 	if exist {
 		room.AddPeer(peer)
 	} else {
-		c.CreateRoom(id)
+		coordinator.CreateRoom(id)
 		room.AddPeer(peer)
 	}
 }
 
-func (c *Coordinator) removeUserFromRoom(id string, socketLocalAddr string) {
-	room, exist := c.sessioins[id]
+func (coordinator *Coordinator) removeUserFromRoom(id string, socketLocalAddr string) {
+	room, exist := coordinator.sessioins[id]
 	if !exist {
 		return
 	}
 	room.RemovePeer(socketLocalAddr)
 }
 
-func (c *Coordinator) findInRoom(LocalAddr string) (*Peer, string, error) {
-	for roomID, room := range c.sessioins {
+func (coordinator *Coordinator) findInRoom(LocalAddr string) (*Peer, string, error) {
+	for roomID, room := range coordinator.sessioins {
 		peer, exist := room.peers[LocalAddr]
 
 		if exist {
@@ -57,5 +57,9 @@ func (c *Coordinator) findInRoom(LocalAddr string) (*Peer, string, error) {
 		}
 	}
 	return newPeer(""), "", fmt.Errorf("Rooms don't include such user")
+
+}
+
+func (coordinator *Coordinator) ObtainEvent(message any) {
 
 }

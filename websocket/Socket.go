@@ -52,18 +52,7 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 	for {
 		conn.ReadJSON(&message) //deserialization doesn't work on that method
 
-		switch message.event {
-		case "offer":
-			go func() {}()
-		case "answer":
-			go func() {}()
-		case "ice-candidate":
-			go func() {}()
-		case "join":
-			go func() {}()
-		case "leave":
-			go func() {}()
-		}
+		coordinator.ObtainEvent(message)
 
 	}
 }
