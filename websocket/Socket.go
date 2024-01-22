@@ -18,8 +18,8 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func StartServer() *Wserver {
-	server := Wserver{
+func StartServer() *WsServer {
+	server := WsServer{
 		make(map[*websocket.Conn]bool),
 	}
 
@@ -30,9 +30,10 @@ func StartServer() *Wserver {
 }
 
 // websockets listener
-func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
+func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
+
 	coordinator := types.NewCoordinator()
 	// TODO add socket to peer
 	defer conn.Close()
@@ -49,17 +50,20 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 	message := &WsMessage{}
 
 	for {
+		// TODO fix it
 		conn.ReadJSON(&message) //deserialization doesn't work on that method
-		coordinator.ObtainEvent(message)
+		// Сокет все таки нужен )
+		// Но это не проблема, мы все равно передаем ссылку
+		coordinator.ObtainEvent(message, conn)
 
 	}
 }
 
-func (ws *Wserver) answerToPeer(message string, conn *websocket.Conn) {
+func (ws *WsServer) answerToPeer(message string, conn *websocket.Conn) {
 	conn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-func (ws *Wserver) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
+func (ws *WsServer) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
 	for allconn, _ := range ws.clients {
 		if conn == allconn {
 			continue
@@ -69,19 +73,15 @@ func (ws *Wserver) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
 	}
 }
 
-type Wserver struct {
+type WsServer struct {
 	clients map[*websocket.Conn]bool
 }
 
-func newWSServer() *Wserver {
-	return &Wserver{}
-}
-
 type WsMessage struct {
-	event string
-	data  any
+	Event string
+	Data  any
 }
 
 func NewMessage(evt string, data any) *WsMessage {
-	return &WsMessage{event: evt, data: data}
+	return &WsMessage{Event: evt, Data: data}
 }
