@@ -13,11 +13,11 @@ type Lobby interface {
 }
 
 type Coordinator struct {
-	sessioins map[string]Room
+	sessioins map[string]*Room
 }
 
 func NewCoordinator() *Coordinator {
-	return &Coordinator{sessioins: map[string]Room{}}
+	return &Coordinator{sessioins: map[string]*Room{}}
 }
 
 func (coordinator *Coordinator) CreateRoom(id string) {

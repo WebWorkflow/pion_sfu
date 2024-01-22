@@ -25,8 +25,8 @@ type Room struct {
 	tracks map[string]*webrtc.TrackLocalStaticRTP
 }
 
-func NewRoom(id string) Room {
-	return Room{
+func NewRoom(id string) *Room {
+	return &Room{
 		id:     id,
 		mutex:  sync.RWMutex{},
 		peers:  map[string]*Peer{},
