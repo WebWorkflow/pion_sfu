@@ -70,12 +70,6 @@ func answerToPeer(conn *websocket.Conn, message string) {
 	conn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-// func broadcast(message []byte) {
-// 	for conn := range clients {
-// 		conn.WriteMessage(websocket.TextMessage, message)
-// 	}
-// }
-
 type WsMessage struct {
 	event string
 	data  any
