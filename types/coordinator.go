@@ -1,7 +1,10 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
+	websocket2 "pion_sfu/websocket"
 )
 
 type Lobby interface {
@@ -48,6 +51,13 @@ func (coordinator *Coordinator) removeUserFromRoom(id string, socketLocalAddr st
 	room.RemovePeer(socketLocalAddr)
 }
 
-func (coordinator *Coordinator) ObtainEvent(message any) {
+func (coordinator *Coordinator) ObtainEvent(message []byte) error {
 	// TODO add events
+	wsMessage := websocket2.WsMessage{}
+	err := json.Unmarshal(message, &wsMessage)
+	if err != nil {
+		return fmt.Errorf("Shit")
+	}
+
+	return nil
 }
