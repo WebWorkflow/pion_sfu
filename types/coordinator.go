@@ -60,6 +60,6 @@ func (coordinator *Coordinator) findInRoom(LocalAddr string) (*Peer, string, err
 
 }
 
-func (coordinator *Coordinator) ObtainEvent(message any) {
+func (coordinator *Coordinator) ObtainEvent(message any, socket *websocket.Conn) {
 
 }

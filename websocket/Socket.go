@@ -51,8 +51,11 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		conn.ReadJSON(&message) //deserialization doesn't work on that method
-
-		coordinator.ObtainEvent(message)
+		if message.event == "offer" {
+			coordinator.ObtainEvent(message, conn)
+		} else {
+			coordinator.ObtainEvent(message, nil)
+		}
 
 	}
 }

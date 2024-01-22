@@ -133,7 +133,7 @@ func (room *Room) Signal() {
 				}
 			}
 
-			offer, err := peer.connection.CreateOffer(nil)
+			offer, err := peer.connection.CreateAnswer(nil)
 			if err != nil {
 				return true
 			}
