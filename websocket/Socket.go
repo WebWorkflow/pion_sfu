@@ -7,11 +7,7 @@ import (
 	"pion_sfu/types"
 
 	"github.com/gorilla/websocket"
-	"github.com/pion/webrtc/v3/pkg/null"
 )
-
-
-
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -23,24 +19,22 @@ var upgrader = websocket.Upgrader{
 }
 
 func StartServer() *Wserver {
-    server := Wserver{
-        make(map[*websocket.Conn]bool),
-    }
+	server := Wserver{
+		make(map[*websocket.Conn]bool),
+	}
 
-    http.HandleFunc("/", server.wsInit)
-    go http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/", server.wsInit)
+	go http.ListenAndServe(":8080", nil)
 
-    return &server
+	return &server
 }
 
-	
 // websockets listener
 func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 
-	coordinator:=types.NewCoordinator()
-	
+	coordinator := types.NewCoordinator()
 
 	defer conn.Close()
 
@@ -53,78 +47,54 @@ func (ws *Wserver) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(" successfully")
 
-	
-
 	message := &WsMessage{}
-	
+
 	for {
-		 conn.ReadJSON(&message) //deserialization doesn't work on that method
+		conn.ReadJSON(&message) //deserialization doesn't work on that method
 
 		switch message.event {
 		case "offer":
-			go func() {
-				peer,roomID,err:=coordinator.findInRoom(conn.LocalAddr())
-				if err!=null{
-					return 
-				}
-				peer.connection
-				ws.broadcastJSON(&message,conn,roomID)
-			}()
+			go func() {}()
 		case "answer":
-			go func() {
-				ws.broadcastJSON(&message,conn)
-			}()
+			go func() {}()
 		case "ice-candidate":
-			go func() {
-				ws.broadcastJSON(&message,conn)
-			}()
+			go func() {}()
 		case "join":
-			go func() {
-             coordinator.addUserToRoom(message.data,conn)
-			}()
+			go func() {}()
 		case "leave":
-			go func() {
-				coordinator.removeUserFromRoom(message.data)
-			}()
+			go func() {}()
 		}
-	
+
 	}
 }
 
-
-func(ws *Wserver) answerToPeer( message string,conn *websocket.Conn) {
+func (ws *Wserver) answerToPeer(message string, conn *websocket.Conn) {
 	conn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-func (ws *Wserver) broadcastJSON( message *WsMessage, conn *websocket.Conn){
-	for allconn,_ :=range ws.clients{
-		if (conn==allconn){
-           continue
+func (ws *Wserver) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
+	for allconn, _ := range ws.clients {
+		if conn == allconn {
+			continue
 		} else {
-			allconn.writeJSON(&message)
+			allconn.WriteJSON(&message)
 		}
 	}
 }
 
-
-type Wserver struct{
-    clients map[*websocket.Conn] bool
+type Wserver struct {
+	clients map[*websocket.Conn]bool
 }
 
-func newWSServer () *Wserver{
+func newWSServer() *Wserver {
 	return &Wserver{}
 }
-
 
 type WsMessage struct {
 	event string
 	data  any
 }
 
-func newMessage(evt string, data any) *WsMessage {
+func NewMessage(evt string, data any) *WsMessage {
 	return &WsMessage{event: evt, data: data}
 }
-
-
-
-

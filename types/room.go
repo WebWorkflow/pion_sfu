@@ -85,7 +85,8 @@ func (room *Room) BroadCast(message websocket.WsMessage) {
 		rec.socket.WriteJSON(message)
 	}
 }
-//async signaling??
+
+// async signaling??
 func (room *Room) Signal() {
 	room.mutex.Lock()
 	defer room.mutex.Unlock()
@@ -145,9 +146,8 @@ func (room *Room) Signal() {
 			if err != nil {
 				return true
 			}
-			msg := websocket.newMessage("offer", offerString)
-			room.BroadCast(msg)
-
+			msg := websocket.NewMessage("offer", offerString)
+			room.BroadCast(*msg)
 		}
 		return
 	}
@@ -167,6 +167,3 @@ func (room *Room) Signal() {
 		}
 	}
 }
-
-
-
