@@ -62,6 +62,8 @@ func (ws *WsServer) answerToPeer(message string, conn *websocket.Conn) {
 	conn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
+
+
 func (ws *WsServer) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
 	for allconn, _ := range ws.clients {
 		if conn == allconn {
@@ -75,6 +77,8 @@ func (ws *WsServer) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
 type WsServer struct {
 	clients map[*websocket.Conn]bool
 }
+
+
 
 type WsMessage struct {
 	Event string

@@ -11,6 +11,7 @@ import (
 )
 
 type Session interface {
+	JoinRoom(id string)
 	AddPeer(peer *Peer)
 	RemovePeer(peer_id string)
 	AddTrack(track *webrtc.TrackRemote)
@@ -104,6 +105,12 @@ func (room *Room) BroadCast(message websocket.WsMessage, self_id string) {
 			rec.socket.WriteJSON(message)
 		}
 	}
+}
+
+func (room *Room) JoinRoom(id string) {
+	room.mutex.Lock()
+	defer room.mutex.Unlock()
+	room.peers[id] = newPeer(id)
 }
 
 func (room *Room) Signal() {
