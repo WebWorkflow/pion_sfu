@@ -48,10 +48,10 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 			if err != nil {
 				fmt.Println("Failed to establish peer connection")
 			}
-			peer.connection = conn
 
-			// TODO Do we need this ?
-			//defer peer.connection.Close()
+			peer.SetPeerConnection(conn)
+
+			defer peer.connection.Close()
 
 			// Accept one audio and one video track incoming
 			for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
@@ -186,37 +186,4 @@ func (coordinator *Coordinator) ObtainEvent(message []byte, socket *websocket.Co
 	}
 
 	return
-}
-
-func (c *Coordinator) ObtainEvent(event string, data any) {
-	switch event {
-	case "join":
-		go func() {
-			// if room_id is not mapped => create a new room
-			// insert new user to the room
-		}()
-	case "leave":
-		go func() {
-			// drop user from the room
-			// if room is empty => drop a room too
-		}()
-	case "add-peer":
-		go func() {
-			// Initiate a new peer connection
-			// If we have new tracks => add tracks to room.tracks
-		}()
-	case "remove-peer":
-		go func() {
-			// remove PeerConnection from the Peer struct (peer.connection)
-			// if peer.streams is not empty => remove tracks
-		}()
-	case "add-track":
-		go func() {
-			// add tracks from peer.streams to room.tracks with convertation to TrackLocalStaticRTP
-		}()
-	case "remove-track":
-		go func() {
-			// remove tracks from room.tracks and from peer.streams
-		}()
-	}
 }
