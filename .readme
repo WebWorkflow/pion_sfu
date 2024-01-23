@@ -1,0 +1,4 @@
+'''sh
+docker build -t webrtcback:rtcback .
+docker run -p 8080:8080 webrtcback:rtcback
+'''
