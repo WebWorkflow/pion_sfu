@@ -1,7 +1,7 @@
-package SFUtypes
+package types
 
 import (
-	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,6 +16,7 @@ type Session interface {
 	RemovePeer(peer_id string)
 	AddTrack(track *webrtc.TrackRemote)
 	RemoveTrack(track *webrtc.TrackRemote)
+	SendAnswer(message webrtc.SessionDescription, peer_id string)
 	Signal()
 }
 
@@ -26,8 +27,8 @@ type Room struct {
 	tracks map[string]*webrtc.TrackLocalStaticRTP
 }
 
-func NewRoom(id string) Room {
-	return Room{
+func NewRoom(id string) *Room {
+	return &Room{
 		id:     id,
 		mutex:  sync.RWMutex{},
 		peers:  map[string]*Peer{},
@@ -35,55 +36,74 @@ func NewRoom(id string) Room {
 	}
 }
 
-func (r *Room) AddPeer(peer *Peer) {
-	r.mutex.Lock()
+func (room *Room) AddPeer(peer *Peer) {
+	room.mutex.Lock()
 	defer func() {
-		r.mutex.Unlock()
-		r.Signal()
+		room.mutex.Unlock()
+		room.Signal()
 	}()
 
-	r.peers[peer.id] = peer
+	room.peers[peer.id] = peer
 }
 
-func (r *Room) RemovePeer(peer_id string) {
-	r.mutex.Lock()
+func (room *Room) RemovePeer(peer_id string) {
+	room.mutex.Lock()
 	defer func() {
-		r.mutex.Unlock()
-		r.Signal()
+		room.mutex.Unlock()
+		room.Signal()
 	}()
 
-	delete(r.peers, peer_id)
+	delete(room.peers, peer_id)
 }
 
-func (r *Room) AddTrack(track *webrtc.TrackRemote) {
-	r.mutex.Lock()
+func (room *Room) AddTrack(track *webrtc.TrackRemote) *webrtc.TrackLocalStaticRTP {
+	room.mutex.Lock()
 	defer func() {
-		r.mutex.Unlock()
-		r.Signal()
+		room.mutex.Unlock()
+		room.Signal()
 	}()
 	trackLocal, err := webrtc.NewTrackLocalStaticRTP(track.Codec().RTPCodecCapability, track.ID(), track.StreamID())
 	if err != nil {
 		panic(err)
 	}
 
-	r.tracks[trackLocal.ID()] = trackLocal
+	room.tracks[trackLocal.ID()] = trackLocal
+	return trackLocal
 }
 
-func (r *Room) RemoveTrack(track *webrtc.TrackLocalStaticRTP) {
-	r.mutex.Lock()
+func (room *Room) RemoveTrack(track *webrtc.TrackLocalStaticRTP) {
+	room.mutex.Lock()
 	defer func() {
-		r.mutex.Unlock()
-		r.Signal()
+		room.mutex.Unlock()
+		room.Signal()
 	}()
 
-	delete(r.tracks, track.ID())
+	delete(room.tracks, track.ID())
 }
 
-func (room *Room) BroadCast(message websocket.WsMessage) {
+func (room *Room) SendAnswer(message webrtc.SessionDescription, peer_id string) {
+	if peer, ok := room.peers[peer_id]; ok {
+		if err := peer.socket.WriteJSON(message); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func (room *Room) SendICE(message []byte, peer_id string) {
+	if peer, ok := room.peers[peer_id]; ok {
+		if err := peer.socket.WriteJSON(websocket.WsMessage{Event: "candidate", Data: message}); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func (room *Room) BroadCast(message websocket.WsMessage, self_id string) {
 	room.mutex.Lock()
 	defer room.mutex.Unlock()
 	for _, rec := range room.peers {
-		rec.socket.WriteJSON(message)
+		if rec.id != self_id {
+			rec.socket.WriteJSON(message)
+		}
 	}
 }
 
@@ -138,23 +158,6 @@ func (room *Room) Signal() {
 					}
 				}
 			}
-
-			offer, err := peer.connection.CreateOffer(nil)
-			if err != nil {
-				return true
-			}
-
-			if err = peer.connection.SetLocalDescription(offer); err != nil {
-				return true
-			}
-
-			offerString, err := json.Marshal(offer)
-			if err != nil {
-				return true
-			}
-			msg := websocket.newMessage("offer", offerString)
-			room.BroadCast(msg)
-
 		}
 		return
 	}

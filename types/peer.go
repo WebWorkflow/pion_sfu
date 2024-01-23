@@ -1,6 +1,7 @@
-package SFUtypes
+package types
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -12,6 +13,7 @@ type PeerInterface interface {
 	AddRemoteTrack(track *webrtc.TrackRemote)
 	RemoveRemoteTrack(track *webrtc.TrackRemote)
 	SetPeerConnection(conn *webrtc.PeerConnection)
+	ReactOnOffer(offer webrtc.SessionDescription)
 }
 
 type Peer struct {
@@ -48,4 +50,20 @@ func (peer *Peer) SetSocket(socket *websocket.Conn) {
 	peer.mutex.Lock()
 	defer peer.mutex.Unlock()
 	peer.socket = socket
+}
+
+func (peer *Peer) ReactOnOffer(offer webrtc.SessionDescription) (webrtc.SessionDescription, error) {
+	peer.mutex.Lock()
+	defer peer.mutex.Unlock()
+	err := peer.connection.SetRemoteDescription(offer)
+	if err != nil {
+		fmt.Println(err)
+		return offer, err
+	}
+	answer, err := peer.connection.CreateAnswer(nil)
+	if err != nil {
+		return offer, err
+	}
+	return answer, nil
+
 }
