@@ -3,22 +3,22 @@ package websocket
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 	"net/http"
 	"pion_sfu/types"
-	"github.com/redis/go-redis/v9"
-	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
-
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
 func StartServer() *WsServer {
+
 	server := WsServer{
 		make(map[*websocket.Conn]bool),
 		*types.NewCoordinator(),
@@ -78,25 +78,23 @@ type WsServer struct {
 	coordinator types.Coordinator
 }
 
-
-func initReddis(){
+func initReddis() {
 	client := redis.NewClient(&redis.Options{
-        Addr:	  "localhost:6379",
-        Password: "", // no password set
-        DB:		  0,  // use default DB
-    })
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
 
 	ctx := context.Background()
 
-err := client.Set(ctx, "websocketAdr", "room1", 0).Err()
-if err != nil {
-    panic(err)
-}
+	err := client.Set(ctx, "websocketAdr", "room1", 0).Err()
+	if err != nil {
+		panic(err)
+	}
 
-val, err := client.Get(ctx, "websocketAdr").Result()
-if err != nil {
-    panic(err)
+	val, err := client.Get(ctx, "websocketAdr").Result()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("foo", val)
 }
-fmt.Println("foo", val)
-}
-

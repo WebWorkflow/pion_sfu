@@ -3,10 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
+	"log"
+	"pion_sfu/redisfold"
 )
 
 type Lobby interface {
@@ -18,10 +18,11 @@ type Lobby interface {
 
 type Coordinator struct {
 	sessioins map[string]*Room
+	r         *redisfold.RedisInstance
 }
 
 func NewCoordinator() *Coordinator {
-	return &Coordinator{sessioins: map[string]*Room{}}
+	return &Coordinator{sessioins: map[string]*Room{}, r: redisfold.GetRedisInstance()}
 }
 
 func (coordintor *Coordinator) ShowSessions() map[string]*Room {
@@ -37,9 +38,12 @@ func (coordinator *Coordinator) RemoveRoom(id string) {
 }
 
 func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, socket *websocket.Conn) {
+	coordinator.r.SetTextValue(room_id, self_id)
+
 	if _, ok := coordinator.sessioins[room_id]; !ok {
 		coordinator.CreateRoom(room_id)
 	}
+
 	if room, ok := coordinator.sessioins[room_id]; ok {
 		// Add Peer to Room
 		room.AddPeer(newPeer(self_id))
