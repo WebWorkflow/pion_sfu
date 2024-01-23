@@ -22,3 +22,9 @@ type ANSWER struct {
 	typ string
 	sdp string
 }
+
+type CANDIDATE struct {
+	self_id   string
+	room_id   string
+	candidate webrtc.ICECandidate
+}

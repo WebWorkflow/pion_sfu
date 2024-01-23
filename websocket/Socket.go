@@ -35,7 +35,6 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 
 	coordinator := types.NewCoordinator()
-	// TODO add socket to peer
 	defer conn.Close()
 
 	fmt.Printf("Client connected")
@@ -47,15 +46,15 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(" successfully")
 
-	message := &WsMessage{}
+	message := []byte{}
 
 	for {
-		// TODO fix it
-		conn.ReadJSON(&message) //deserialization doesn't work on that method
-		// Сокет все таки нужен )
-		// Но это не проблема, мы все равно передаем ссылку
+		err := conn.ReadJSON(&message)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 		coordinator.ObtainEvent(message, conn)
-
 	}
 }
 
