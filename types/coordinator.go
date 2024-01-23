@@ -48,10 +48,11 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 			if err != nil {
 				fmt.Println("Failed to establish peer connection")
 			}
-			peer.connection = conn
+
+			peer.SetPeerConnection(conn)
 
 			// TODO Do we need this ?
-			//defer peer.connection.Close()
+			defer peer.connection.Close()
 
 			// Accept one audio and one video track incoming
 			for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
