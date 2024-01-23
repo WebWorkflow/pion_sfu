@@ -2,9 +2,9 @@ package websocket
 
 import (
 	"fmt"
+	"pion_sfu/types"
 
 	"net/http"
-	"pion_sfu/types"
 
 	"github.com/gorilla/websocket"
 )
@@ -49,6 +49,7 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 	message := []byte{}
 
 	for {
+		fmt.Println(coordinator)
 		err := conn.ReadJSON(&message)
 		if err != nil {
 			fmt.Println(err)
@@ -62,9 +63,7 @@ func (ws *WsServer) answerToPeer(message string, conn *websocket.Conn) {
 	conn.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-
-
-func (ws *WsServer) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
+func (ws *WsServer) broadcastJSON(message *types.WsMessage, conn *websocket.Conn) {
 	for allconn, _ := range ws.clients {
 		if conn == allconn {
 			continue
@@ -76,15 +75,4 @@ func (ws *WsServer) broadcastJSON(message *WsMessage, conn *websocket.Conn) {
 
 type WsServer struct {
 	clients map[*websocket.Conn]bool
-}
-
-
-
-type WsMessage struct {
-	Event string
-	Data  any
-}
-
-func NewMessage(evt string, data any) *WsMessage {
-	return &WsMessage{Event: evt, Data: data}
 }

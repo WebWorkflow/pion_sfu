@@ -3,10 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
-	"log"
-	websocket2 "pion_sfu/websocket"
 )
 
 type Lobby interface {
@@ -123,7 +123,7 @@ func (coordinator *Coordinator) RemoveUserFromRoom(self_id string, room_id strin
 }
 
 func (coordinator *Coordinator) ObtainEvent(message []byte, socket *websocket.Conn) {
-	wsMessage := websocket2.WsMessage{}
+	wsMessage := WsMessage{}
 	err := json.Unmarshal(message, &wsMessage)
 	if err != nil {
 		fmt.Println(err)

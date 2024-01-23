@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/pion/webrtc/v3"
-
-	"pion_sfu/websocket"
 )
 
 type Session interface {
@@ -91,13 +89,13 @@ func (room *Room) SendAnswer(message webrtc.SessionDescription, peer_id string) 
 
 func (room *Room) SendICE(message []byte, peer_id string) {
 	if peer, ok := room.peers[peer_id]; ok {
-		if err := peer.socket.WriteJSON(websocket.WsMessage{Event: "candidate", Data: message}); err != nil {
+		if err := peer.socket.WriteJSON(WsMessage{Event: "candidate", Data: message}); err != nil {
 			fmt.Println(err)
 		}
 	}
 }
 
-func (room *Room) BroadCast(message websocket.WsMessage, self_id string) {
+func (room *Room) BroadCast(message WsMessage, self_id string) {
 	room.mutex.Lock()
 	defer room.mutex.Unlock()
 	for _, rec := range room.peers {

@@ -28,3 +28,12 @@ type CANDIDATE struct {
 	room_id   string
 	candidate webrtc.ICECandidate
 }
+
+type WsMessage struct {
+	Event string
+	Data  any
+}
+
+func NewMessage(evt string, data any) *WsMessage {
+	return &WsMessage{Event: evt, Data: data}
+}
