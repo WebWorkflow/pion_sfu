@@ -1,10 +1,11 @@
 package websocket
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"pion_sfu/types"
-
+	"github.com/redis/go-redis/v9"
 	"github.com/gorilla/websocket"
 )
 
@@ -76,3 +77,26 @@ type WsServer struct {
 	clients     map[*websocket.Conn]bool
 	coordinator types.Coordinator
 }
+
+
+func initReddis(){
+	client := redis.NewClient(&redis.Options{
+        Addr:	  "localhost:6379",
+        Password: "", // no password set
+        DB:		  0,  // use default DB
+    })
+
+	ctx := context.Background()
+
+err := client.Set(ctx, "websocketAdr", "room1", 0).Err()
+if err != nil {
+    panic(err)
+}
+
+val, err := client.Get(ctx, "websocketAdr").Result()
+if err != nil {
+    panic(err)
+}
+fmt.Println("foo", val)
+}
+
