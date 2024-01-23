@@ -61,6 +61,8 @@ func (peer *Peer) ReactOnOffer(offer webrtc.SessionDescription) (webrtc.SessionD
 		return offer, err
 	}
 	answer, err := peer.connection.CreateAnswer(nil)
+	//TODO add answer to local description _ = peer.connection.SetLocalDescription(answer)
+
 	if err != nil {
 		return offer, err
 	}
