@@ -38,7 +38,7 @@ func (coordinator *Coordinator) RemoveRoom(id string) {
 }
 
 func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, socket *websocket.Conn) {
-	coordinator.r.SetTextValue(room_id, self_id)
+	coordinator.r.BindUserToRoom(socket.LocalAddr().String(), room_id)
 
 	if _, ok := coordinator.sessioins[room_id]; !ok {
 		coordinator.CreateRoom(room_id)
@@ -116,6 +116,12 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 						return
 					}
 				}
+				//main aim of redis
+				broadcastingList := coordinator.r.PropagationList(room_id, socket.LocalAddr().String())
+				room := coordinator.sessioins[room_id]
+				for _, v := range broadcastingList {
+					room.peers[v].connection.AddTrack(trackLocal)
+				}
 			})
 		}
 
@@ -123,7 +129,10 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 }
 
 func (coordinator *Coordinator) RemoveUserFromRoom(self_id string, room_id string) {
+	coordinator.r.UnbindUserToRoom(room_id)
+
 	if room, ok := coordinator.sessioins[room_id]; ok {
+
 		if _, ok := room.peers[self_id]; ok {
 			delete(room.peers, self_id)
 		}
@@ -146,19 +155,23 @@ func (coordinator *Coordinator) ObtainEvent(message []byte, socket *websocket.Co
 				fmt.Println("Conversion failed")
 				return
 			}
+			coordinator.r.SetRoomClient(data.room_id, socket.LocalAddr().String(), data.self_id)
 			coordinator.AddUserToRoom(data.self_id, data.room_id, socket)
 		}()
 	case "leaveRoom":
 		go func() {
+
 			data, ok := wsMessage.Data.(LEFT_ROOM)
 			if !ok {
 				fmt.Println("Conversion failed")
 				return
 			}
+
 			coordinator.RemoveUserFromRoom(data.self_id, data.room_id)
 		}()
 	case "offer":
 		go func() {
+
 			data, ok := wsMessage.Data.(OFFER)
 			if !ok {
 				fmt.Println("Conversion failed")
