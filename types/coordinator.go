@@ -24,6 +24,10 @@ func NewCoordinator() *Coordinator {
 	return &Coordinator{sessioins: map[string]*Room{}}
 }
 
+func (coordintor *Coordinator) ShowSessions() map[string]*Room {
+	return coordintor.sessioins
+}
+
 func (coordinator *Coordinator) CreateRoom(id string) {
 	coordinator.sessioins[id] = NewRoom(id)
 }

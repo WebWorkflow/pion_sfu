@@ -6,5 +6,4 @@ import (
 
 func main() {
 	websocket2.StartServer()
-
 }

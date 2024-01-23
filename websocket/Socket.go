@@ -21,11 +21,13 @@ var upgrader = websocket.Upgrader{
 func StartServer() *WsServer {
 	server := WsServer{
 		make(map[*websocket.Conn]bool),
+		*types.NewCoordinator(),
 	}
-
 	http.HandleFunc("/", server.wsInit)
-	go http.ListenAndServe(":8080", nil)
-
+	err := http.ListenAndServe("localhost:8080", nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return &server
 }
 
@@ -34,9 +36,8 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 
-	coordinator := types.NewCoordinator()
+	ws.coordinator.CreateRoom(conn.LocalAddr().String())
 	defer conn.Close()
-
 	fmt.Printf("Client connected")
 
 	if err != nil {
@@ -49,13 +50,15 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 	message := []byte{}
 
 	for {
-		fmt.Println(coordinator)
+		for k, v := range ws.coordinator.ShowSessions() {
+			fmt.Println(k, v)
+		}
 		err := conn.ReadJSON(&message)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		coordinator.ObtainEvent(message, conn)
+		ws.coordinator.ObtainEvent(message, conn)
 	}
 }
 
@@ -74,5 +77,6 @@ func (ws *WsServer) broadcastJSON(message *types.WsMessage, conn *websocket.Conn
 }
 
 type WsServer struct {
-	clients map[*websocket.Conn]bool
+	clients     map[*websocket.Conn]bool
+	coordinator types.Coordinator
 }
