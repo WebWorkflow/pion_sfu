@@ -2,9 +2,8 @@ package websocket
 
 import (
 	"fmt"
-	"pion_sfu/types"
-
 	"net/http"
+	"pion_sfu/types"
 
 	"github.com/gorilla/websocket"
 )
@@ -36,8 +35,8 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 
-	ws.coordinator.CreateRoom(conn.LocalAddr().String())
 	defer conn.Close()
+
 	fmt.Printf("Client connected")
 
 	if err != nil {
@@ -50,9 +49,6 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 	message := []byte{}
 
 	for {
-		for k, v := range ws.coordinator.ShowSessions() {
-			fmt.Println(k, v)
-		}
 		err := conn.ReadJSON(&message)
 		if err != nil {
 			fmt.Println(err)
