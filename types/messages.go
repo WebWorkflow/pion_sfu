@@ -7,7 +7,7 @@ type JOIN_ROOM struct {
 	room_id string
 }
 
-type LEFT_ROOM struct {
+type LEAVE_ROOM struct {
 	self_id string
 	room_id string
 }
@@ -26,14 +26,14 @@ type ANSWER struct {
 type CANDIDATE struct {
 	self_id   string
 	room_id   string
-	candidate webrtc.ICECandidate
+	candidate webrtc.ICECandidateInit
 }
 
 type WsMessage struct {
-	Event string
-	Data  any
+	Event string `json:"event"`
+	Data  any    `json:"data"`
 }
 
-func NewMessage(evt string, data any) *WsMessage {
+func NewMessage(evt string, data string) *WsMessage {
 	return &WsMessage{Event: evt, Data: data}
 }

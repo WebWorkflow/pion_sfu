@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -38,7 +39,6 @@ func (room *Room) AddPeer(peer *Peer) {
 	room.mutex.Lock()
 	defer func() {
 		room.mutex.Unlock()
-		room.Signal()
 	}()
 
 	room.peers[peer.id] = peer
@@ -81,16 +81,21 @@ func (room *Room) RemoveTrack(track *webrtc.TrackLocalStaticRTP) {
 
 func (room *Room) SendAnswer(message webrtc.SessionDescription, peer_id string) {
 	if peer, ok := room.peers[peer_id]; ok {
-		if err := peer.socket.WriteJSON(message); err != nil {
+		raw, parse_err := json.Marshal(message)
+		if err := peer.socket.WriteJSON(WsMessage{Event: "answer", Data: string(raw)}); err != nil && parse_err != nil {
 			fmt.Println(err)
+			fmt.Println(parse_err)
 		}
 	}
 }
 
-func (room *Room) SendICE(message []byte, peer_id string) {
+func (room *Room) SendICE(message *webrtc.ICECandidate, peer_id string) {
 	if peer, ok := room.peers[peer_id]; ok {
-		if err := peer.socket.WriteJSON(WsMessage{Event: "candidate", Data: message}); err != nil {
+		fmt.Println("SENDED |ICE|: ", message.ToJSON())
+		raw, parse_err := json.Marshal(message.ToJSON())
+		if err := peer.socket.WriteJSON(WsMessage{Event: "candidate", Data: string(raw)}); err != nil && parse_err != nil {
 			fmt.Println(err)
+			fmt.Println(parse_err)
 		}
 	}
 }

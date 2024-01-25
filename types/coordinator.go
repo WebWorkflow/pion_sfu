@@ -1,12 +1,10 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
-
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
+	"log"
 )
 
 type Lobby interface {
@@ -24,8 +22,8 @@ func NewCoordinator() *Coordinator {
 	return &Coordinator{sessioins: map[string]*Room{}}
 }
 
-func (coordintor *Coordinator) ShowSessions() map[string]*Room {
-	return coordintor.sessioins
+func (coordinator *Coordinator) ShowSessions() map[string]*Room {
+	return coordinator.sessioins
 }
 
 func (coordinator *Coordinator) CreateRoom(id string) {
@@ -38,11 +36,13 @@ func (coordinator *Coordinator) RemoveRoom(id string) {
 
 func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, socket *websocket.Conn) {
 	if _, ok := coordinator.sessioins[room_id]; !ok {
+		fmt.Println("New Room was created: ", room_id)
 		coordinator.CreateRoom(room_id)
 	}
 	if room, ok := coordinator.sessioins[room_id]; ok {
 		// Add Peer to Room
 		room.AddPeer(newPeer(self_id))
+		fmt.Println("Peer ", self_id, "was added to room ", room_id)
 		if peer, ok := room.peers[self_id]; ok {
 			// Set socket connection to Peer
 			peer.SetSocket(socket)
@@ -54,10 +54,11 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 			}
 
 			peer.SetPeerConnection(conn)
-
-			// TODO Do we need this ?
-			defer peer.connection.Close()
-
+			fmt.Println("Peer connection was established")
+			// TODO this close the peer connection
+			// TODO need to be in loop
+			//defer peer.connection.Close()
+			//defer fmt.Println("Peer connection was closed")
 			// Accept one audio and one video track incoming
 			for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
 				if _, err := peer.connection.AddTransceiverFromKind(typ, webrtc.RTPTransceiverInit{
@@ -86,14 +87,15 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 				if i == nil {
 					return
 				}
+				fmt.Println("Ice: ", i)
+				room.SendICE(i, self_id)
+				//candidateString, err := json.Marshal(i.ToJSON())
+				//if err != nil {
+				//fmt.Println(err)
+				//return
+				//}
 
-				candidateString, err := json.Marshal(i.ToJSON())
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				room.SendICE(candidateString, peer.id)
+				//room.SendICE(i, peer.id)
 			})
 
 			peer.connection.OnTrack(func(t *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
@@ -126,68 +128,99 @@ func (coordinator *Coordinator) RemoveUserFromRoom(self_id string, room_id strin
 	}
 }
 
-func (coordinator *Coordinator) ObtainEvent(message []byte, socket *websocket.Conn) {
-	wsMessage := WsMessage{}
-	err := json.Unmarshal(message, &wsMessage)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+func (coordinator *Coordinator) ObtainEvent(message WsMessage, socket *websocket.Conn) {
+	wsMessage := message
 	switch wsMessage.Event {
+	// TODO create checkers for all required map fields
 	case "joinRoom":
 		go func() {
-			data, ok := wsMessage.Data.(JOIN_ROOM)
-			if !ok {
-				fmt.Println("Conversion failed")
-				return
+			m, ok := message.Data.(map[string]any)
+			if ok {
+				self_id := m["self_id"].(string)
+				room_id := m["room_id"].(string)
+				coordinator.AddUserToRoom(self_id, room_id, socket)
 			}
-			coordinator.AddUserToRoom(data.self_id, data.room_id, socket)
 		}()
 	case "leaveRoom":
 		go func() {
-			data, ok := wsMessage.Data.(LEFT_ROOM)
-			if !ok {
-				fmt.Println("Conversion failed")
-				return
+			m, ok := message.Data.(map[string]any)
+			if ok {
+				self_id := m["self_id"].(string)
+				room_id := m["room_id"].(string)
+				coordinator.RemoveUserFromRoom(self_id, room_id)
 			}
-			coordinator.RemoveUserFromRoom(data.self_id, data.room_id)
 		}()
 	case "offer":
 		go func() {
-			data, ok := wsMessage.Data.(OFFER)
-			if !ok {
-				fmt.Println("Conversion failed")
-				return
-			}
-			if room, ok := coordinator.sessioins[data.room_id]; ok {
-				if peer, ok := room.peers[data.self_id]; ok {
-					answer, err2 := peer.ReactOnOffer(data.offer)
-					if err2 != nil {
-						fmt.Println(err2)
-						return
+			m, ok := message.Data.(map[string]any)
+			if ok {
+				self_id, _ := m["self_id"].(string)
+				room_id, _ := m["room_id"].(string)
+				offer2 := m["offer"].(map[string]any)
+				if room, ok := coordinator.sessioins[room_id]; ok {
+					if peer, ok := room.peers[self_id]; ok {
+						answer, err2 := peer.ReactOnOffer(offer2["sdp"].(string))
+						if err2 != nil {
+							fmt.Println(err2)
+							return
+						}
+						room.SendAnswer(answer, self_id)
 					}
-					room.SendAnswer(answer, data.self_id)
 				}
 			}
-
 		}()
 	case "ice-candidate":
 		go func() {
-			data, ok := wsMessage.Data.(CANDIDATE)
-			if !ok {
-				fmt.Println("Conversion failed")
-				return
-			}
-			if room, ok := coordinator.sessioins[data.room_id]; ok {
-				if peer, ok := room.peers[data.self_id]; ok {
-					if err := peer.connection.AddICECandidate(data.candidate.ToJSON()); err != nil {
-						log.Println(err)
-						return
+			//m, ok := message.Data.(CANDIDATE)
+			m, ok := message.Data.(map[string]any)
+			if ok {
+				self_id, _ := m["self_id"].(string)
+				room_id, _ := m["room_id"].(string)
+				candidate := m["candidate"].(map[string]any)
+				//fmt.Println(candidate)
+				i_candidate := candidate["candidate"].(string)
+				//fmt.Println(i_candidate)
+				sdp_mid := candidate["sdpMid"].(string)
+				//fmt.Println(sdp_mid)
+				//fmt.Println("SDPMLINEINDEX: ", candidate["sdpMLineIndex"])
+				//fmt.Println("SDPMId: ", candidate["sdpMid"].(string))
+				sdp_m_line_index := uint16(candidate["sdpMLineIndex"].(float64))
+				//fmt.Println(sdp_m_line_index)
+				//fmt.Println("SDPMLINEINDEX |PARSED|: ", sdp_m_line_index)
+				var username_fragment string
+				if candidate["usernameFragment"] != nil {
+					username_fragment = candidate["usernameFragment"].(string)
+				} else {
+					username_fragment = ""
+				}
+				fmt.Println(username_fragment)
+				init := webrtc.ICECandidateInit{
+					Candidate:        i_candidate,
+					SDPMid:           &sdp_mid,
+					SDPMLineIndex:    &sdp_m_line_index,
+					UsernameFragment: &username_fragment,
+				}
+				//fmt.Println(init)
+				if room, ok := coordinator.sessioins[room_id]; ok {
+					if peer, ok := room.peers[self_id]; ok {
+						if err := peer.connection.AddICECandidate(init); err != nil {
+							log.Println(err)
+							return
+						}
+						fmt.Println("ICE-CANDIDATE added for peer", peer.id)
+						fmt.Println(peer.connection.ICEConnectionState())
+						fmt.Println(peer.connection.ICEGatheringState())
 					}
 				}
+			} else {
+				fmt.Println(m)
+				fmt.Println("nach")
 			}
 		}()
+	default:
+		fmt.Println("DEFAULT")
+		fmt.Println(wsMessage)
+
 	}
 
 	return

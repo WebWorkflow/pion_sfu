@@ -52,20 +52,29 @@ func (peer *Peer) SetSocket(socket *websocket.Conn) {
 	peer.socket = socket
 }
 
-func (peer *Peer) ReactOnOffer(offer webrtc.SessionDescription) (webrtc.SessionDescription, error) {
+func (peer *Peer) ReactOnOffer(offer_str string) (webrtc.SessionDescription, error) {
 	peer.mutex.Lock()
 	defer peer.mutex.Unlock()
+
+	offer := webrtc.SessionDescription{
+		Type: webrtc.SDPTypeOffer,
+		SDP:  offer_str,
+	}
 	err := peer.connection.SetRemoteDescription(offer)
 	if err != nil {
 		fmt.Println(err)
 		return offer, err
 	}
+	fmt.Println("Remote Description was set for peer ", peer.id)
+	//fmt.Println(peer.connection.RemoteDescription())
 	answer, err := peer.connection.CreateAnswer(nil)
 	_ = peer.connection.SetLocalDescription(answer)
-
+	fmt.Println("Local Description was set for peer ", peer.id)
+	//fmt.Println(peer.connection.LocalDescription())
 	if err != nil {
 		return offer, err
 	}
+	fmt.Println("Answer was created in peer ", peer.id)
 	return answer, nil
 
 }

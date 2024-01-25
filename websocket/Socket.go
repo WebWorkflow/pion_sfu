@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"pion_sfu/types"
@@ -46,11 +47,25 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(" successfully")
 
-	message := []byte{}
+	message := types.WsMessage{}
 
 	for {
-		err := conn.ReadJSON(&message)
+		messageType, bmessage, err := conn.ReadMessage()
+
 		if err != nil {
+			//fmt.Println("DROP2")
+			//fmt.Println(messageType)
+			fmt.Println(err)
+			return
+		}
+		if messageType == websocket.CloseMessage {
+			break
+		}
+
+		err = json.Unmarshal(bmessage, &message)
+		if err != nil {
+			fmt.Println("DROP")
+			fmt.Println(message.Data)
 			fmt.Println(err)
 			return
 		}
