@@ -55,10 +55,6 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 
 			peer.SetPeerConnection(conn)
 			fmt.Println("Peer connection was established")
-			// TODO this close the peer connection
-			// TODO need to be in loop
-			//defer peer.connection.Close()
-			//defer fmt.Println("Peer connection was closed")
 			// Accept one audio and one video track incoming
 			for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
 				if _, err := peer.connection.AddTransceiverFromKind(typ, webrtc.RTPTransceiverInit{
@@ -85,24 +81,21 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 			// When peer connection is getting the ICE -> send ICE to client
 			peer.connection.OnICECandidate(func(i *webrtc.ICECandidate) {
 				if i == nil {
+					fmt.Println("ICEGatheringState: connected")
 					return
+					room.Signal()
 				}
 				fmt.Println("Ice: ", i)
 				room.SendICE(i, self_id)
-				//candidateString, err := json.Marshal(i.ToJSON())
-				//if err != nil {
-				//fmt.Println(err)
-				//return
-				//}
-
-				//room.SendICE(i, peer.id)
 			})
 
 			peer.connection.OnTrack(func(t *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
+				fmt.Println("Track added from peer: ", self_id)
+				defer room.Signal()
 				// Create a track to fan out our incoming video to all peers
 				trackLocal := room.AddTrack(t)
 				defer room.RemoveTrack(trackLocal)
-
+				defer fmt.Println("Track", trackLocal, "was removed")
 				buf := make([]byte, 1500)
 				for {
 					i, _, err := t.Read(buf)
@@ -169,6 +162,25 @@ func (coordinator *Coordinator) ObtainEvent(message WsMessage, socket *websocket
 				}
 			}
 		}()
+	case "answer":
+		go func() {
+			m, ok := message.Data.(map[string]any)
+			if ok {
+				self_id, _ := m["self_id"].(string)
+				room_id, _ := m["room_id"].(string)
+				offer2 := m["answer"].(map[string]any)
+				if room, ok := coordinator.sessioins[room_id]; ok {
+					if peer, ok := room.peers[self_id]; ok {
+						err := peer.ReactOnAnswer(offer2["sdp"].(string))
+						if err != nil {
+							fmt.Println(err)
+							return
+						}
+					}
+
+				}
+			}
+		}()
 	case "ice-candidate":
 		go func() {
 			//m, ok := message.Data.(CANDIDATE)
@@ -177,30 +189,21 @@ func (coordinator *Coordinator) ObtainEvent(message WsMessage, socket *websocket
 				self_id, _ := m["self_id"].(string)
 				room_id, _ := m["room_id"].(string)
 				candidate := m["candidate"].(map[string]any)
-				//fmt.Println(candidate)
 				i_candidate := candidate["candidate"].(string)
-				//fmt.Println(i_candidate)
 				sdp_mid := candidate["sdpMid"].(string)
-				//fmt.Println(sdp_mid)
-				//fmt.Println("SDPMLINEINDEX: ", candidate["sdpMLineIndex"])
-				//fmt.Println("SDPMId: ", candidate["sdpMid"].(string))
 				sdp_m_line_index := uint16(candidate["sdpMLineIndex"].(float64))
-				//fmt.Println(sdp_m_line_index)
-				//fmt.Println("SDPMLINEINDEX |PARSED|: ", sdp_m_line_index)
 				var username_fragment string
 				if candidate["usernameFragment"] != nil {
 					username_fragment = candidate["usernameFragment"].(string)
 				} else {
 					username_fragment = ""
 				}
-				fmt.Println(username_fragment)
 				init := webrtc.ICECandidateInit{
 					Candidate:        i_candidate,
 					SDPMid:           &sdp_mid,
 					SDPMLineIndex:    &sdp_m_line_index,
 					UsernameFragment: &username_fragment,
 				}
-				//fmt.Println(init)
 				if room, ok := coordinator.sessioins[room_id]; ok {
 					if peer, ok := room.peers[self_id]; ok {
 						if err := peer.connection.AddICECandidate(init); err != nil {
