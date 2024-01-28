@@ -2,10 +2,10 @@ package types
 
 import (
 	"fmt"
+	"github.com/pion/webrtc/v3"
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/pion/webrtc/v3"
 )
 
 type PeerInterface interface {
@@ -77,4 +77,19 @@ func (peer *Peer) ReactOnOffer(offer_str string) (webrtc.SessionDescription, err
 	fmt.Println("Answer was created in peer ", peer.id)
 	return answer, nil
 
+}
+
+func (peer *Peer) ReactOnAnswer(answer_str string) error {
+	peer.mutex.Lock()
+	defer peer.mutex.Unlock()
+	answer := webrtc.SessionDescription{
+		Type: webrtc.SDPTypeAnswer,
+		SDP:  answer_str,
+	}
+	err := peer.connection.SetRemoteDescription(answer)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
 }

@@ -65,7 +65,8 @@ func (room *Room) AddTrack(track *webrtc.TrackRemote) *webrtc.TrackLocalStaticRT
 		panic(err)
 	}
 
-	room.tracks[trackLocal.ID()] = trackLocal
+	room.tracks[track.ID()] = trackLocal
+	fmt.Println("Track ", track.ID(), " was added")
 	return trackLocal
 }
 
@@ -83,6 +84,16 @@ func (room *Room) SendAnswer(message webrtc.SessionDescription, peer_id string) 
 	if peer, ok := room.peers[peer_id]; ok {
 		raw, parse_err := json.Marshal(message)
 		if err := peer.socket.WriteJSON(WsMessage{Event: "answer", Data: string(raw)}); err != nil && parse_err != nil {
+			fmt.Println(err)
+			fmt.Println(parse_err)
+		}
+	}
+}
+
+func (room *Room) SendOffer(message webrtc.SessionDescription, peer_id string) {
+	if peer, ok := room.peers[peer_id]; ok {
+		raw, parse_err := json.Marshal(message)
+		if err := peer.socket.WriteJSON(WsMessage{Event: "offer", Data: string(raw)}); err != nil && parse_err != nil {
 			fmt.Println(err)
 			fmt.Println(parse_err)
 		}
@@ -124,8 +135,9 @@ func (room *Room) Signal() {
 
 			// Check if peer is already closed
 			if peer.connection.ConnectionState() == webrtc.PeerConnectionStateClosed {
+				fmt.Println("Peer with peer_id", peer.id, "was disconnected")
 				room.RemovePeer(peer.id)
-				return
+				return true
 			}
 
 			existingSenders := map[string]bool{}
@@ -135,14 +147,22 @@ func (room *Room) Signal() {
 				}
 
 				existingSenders[sender.Track().ID()] = true
-
 				// If we have a RTPSender that doesn't map to a existing track remove and signal
 				if _, ok := room.tracks[sender.Track().ID()]; !ok {
 					if err := peer.connection.RemoveTrack(sender); err != nil {
+						fmt.Println("Track", sender.Track().ID(), "was removed")
 						return true
 					}
 				}
 			}
+
+			//fmt.Println("######################DEBUG#####################")
+			//fmt.Println("Peer:", peer.id)
+			//fmt.Println("Senders: ")
+			//fmt.Println(peer.connection.GetSenders())
+			//fmt.Println("Receivers: ")
+			//fmt.Println(peer.connection.GetReceivers())
+			//fmt.Println("######################DEBUG#####################")
 
 			// Don't receive videos we are sending, make sure we don't have loopback
 			for _, receiver := range peer.connection.GetReceivers() {
@@ -152,15 +172,49 @@ func (room *Room) Signal() {
 
 				existingSenders[receiver.Track().ID()] = true
 			}
-
 			// Add all track we aren't sending yet to the PeerConnection
 			for trackID := range room.tracks {
 				if _, ok := existingSenders[trackID]; !ok {
-					if _, err := peer.connection.AddTrack(room.tracks[trackID]); err != nil {
+					if _, err := peer.connection.AddTrack(room.tracks[trackID]); err == nil {
+						fmt.Println("New track are sending for peer", peer.id)
 						return true
+					} else {
+						fmt.Println(err)
 					}
 				}
 			}
+
+			if peer.connection.PendingLocalDescription() != nil {
+				fmt.Println(peer.connection.PendingLocalDescription())
+				offer, err := peer.connection.CreateOffer(&webrtc.OfferOptions{
+					OfferAnswerOptions: webrtc.OfferAnswerOptions{},
+					ICERestart:         true,
+				})
+				if err != nil {
+					fmt.Println("Error in CreateOffer: ", err)
+					return true
+				}
+				if err = peer.connection.SetLocalDescription(offer); err != nil {
+					fmt.Println("Offer: ", offer)
+					fmt.Println("Cannot set LocalDescription: ", err)
+					return false
+				}
+
+				offerString, err := json.Marshal(offer)
+				if err != nil {
+					fmt.Println("Marshalling failed: ", err)
+					return true
+				}
+
+				if err = peer.socket.WriteJSON(&WsMessage{
+					Event: "offer",
+					Data:  string(offerString),
+				}); err != nil {
+					fmt.Println("Cannot write message in WsMessage: ", err)
+					return true
+				}
+			}
+
 		}
 		return
 	}
@@ -176,7 +230,13 @@ func (room *Room) Signal() {
 		}
 
 		if !attemptSync() {
+			fmt.Println("Signalling finished")
 			break
 		}
 	}
+}
+
+type helper struct {
+	self_id string
+	room_id string
 }
