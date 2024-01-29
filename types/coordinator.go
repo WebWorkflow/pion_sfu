@@ -124,7 +124,6 @@ func (coordinator *Coordinator) RemoveUserFromRoom(self_id string, room_id strin
 func (coordinator *Coordinator) ObtainEvent(message WsMessage, socket *websocket.Conn) {
 	wsMessage := message
 	switch wsMessage.Event {
-	// TODO create checkers for all required map fields
 	case "joinRoom":
 		go func() {
 			m, ok := message.Data.(map[string]any)
