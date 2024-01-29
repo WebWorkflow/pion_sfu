@@ -14,7 +14,7 @@ scalable solution.
 2. [Features](#features)
    - [Trickle ICE](#trickle-ice) 
    - [Renegotiation](#re-negotiation)
-
+3. [Setup](#setup)
 
 ## Structure
 
@@ -104,3 +104,9 @@ The renegotiation process is usually initiated by one of the session participant
 who wants to make changes to the present connection. This can lead to
 for various reasons such as adding a new component, changing
 quality transfer or connection of a new device.
+
+## Setup
+```bash
+docker build -t <your image name>
+docker run -p 8080:8080 <your image name>
+```
