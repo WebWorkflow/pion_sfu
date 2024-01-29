@@ -12,6 +12,8 @@ type Lobby interface {
 	RemoveRoom(id string)
 	AddUserToRoom(self_id string, room_id string, socket *websocket.Conn)
 	RemoveUserFromRoom(self_id string, room_id string, socket *websocket.Conn)
+	ShowSessions()
+	ObtainEvent(message WsMessage, socket *websocket.Conn)
 }
 
 type Coordinator struct {
@@ -83,7 +85,6 @@ func (coordinator *Coordinator) AddUserToRoom(self_id string, room_id string, so
 				if i == nil {
 					fmt.Println("ICEGatheringState: connected")
 					return
-					room.Signal()
 				}
 				fmt.Println("Ice: ", i)
 				room.SendICE(i, self_id)

@@ -33,7 +33,3 @@ type WsMessage struct {
 	Event string `json:"event"`
 	Data  any    `json:"data"`
 }
-
-func NewMessage(evt string, data string) *WsMessage {
-	return &WsMessage{Event: evt, Data: data}
-}

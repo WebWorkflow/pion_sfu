@@ -116,7 +116,9 @@ func (room *Room) BroadCast(message WsMessage, self_id string) {
 	defer room.mutex.Unlock()
 	for _, rec := range room.peers {
 		if rec.id != self_id {
-			rec.socket.WriteJSON(message)
+			if err := rec.socket.WriteJSON(message); err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }
@@ -155,14 +157,6 @@ func (room *Room) Signal() {
 					}
 				}
 			}
-
-			//fmt.Println("######################DEBUG#####################")
-			//fmt.Println("Peer:", peer.id)
-			//fmt.Println("Senders: ")
-			//fmt.Println(peer.connection.GetSenders())
-			//fmt.Println("Receivers: ")
-			//fmt.Println(peer.connection.GetReceivers())
-			//fmt.Println("######################DEBUG#####################")
 
 			// Don't receive videos we are sending, make sure we don't have loopback
 			for _, receiver := range peer.connection.GetReceivers() {
@@ -234,9 +228,4 @@ func (room *Room) Signal() {
 			break
 		}
 	}
-}
-
-type helper struct {
-	self_id string
-	room_id string
 }

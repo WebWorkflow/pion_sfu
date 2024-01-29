@@ -53,8 +53,6 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 		messageType, bmessage, err := conn.ReadMessage()
 
 		if err != nil {
-			//fmt.Println("DROP2")
-			//fmt.Println(messageType)
 			fmt.Println(err)
 			return
 		}
@@ -70,20 +68,6 @@ func (ws *WsServer) wsInit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		ws.coordinator.ObtainEvent(message, conn)
-	}
-}
-
-func (ws *WsServer) answerToPeer(message string, conn *websocket.Conn) {
-	conn.WriteMessage(websocket.TextMessage, []byte(message))
-}
-
-func (ws *WsServer) broadcastJSON(message *types.WsMessage, conn *websocket.Conn) {
-	for allconn, _ := range ws.clients {
-		if conn == allconn {
-			continue
-		} else {
-			allconn.WriteJSON(&message)
-		}
 	}
 }
 

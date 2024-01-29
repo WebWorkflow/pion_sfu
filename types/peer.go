@@ -66,11 +66,9 @@ func (peer *Peer) ReactOnOffer(offer_str string) (webrtc.SessionDescription, err
 		return offer, err
 	}
 	fmt.Println("Remote Description was set for peer ", peer.id)
-	//fmt.Println(peer.connection.RemoteDescription())
 	answer, err := peer.connection.CreateAnswer(nil)
 	_ = peer.connection.SetLocalDescription(answer)
 	fmt.Println("Local Description was set for peer ", peer.id)
-	//fmt.Println(peer.connection.LocalDescription())
 	if err != nil {
 		return offer, err
 	}
