@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  pionsfu:
+    image: pion_sfu_img
+    ports:
+      - "8080:8080"
+    hostname: 127.0.0.1

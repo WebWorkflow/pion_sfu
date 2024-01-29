@@ -24,10 +24,13 @@ func StartServer() *WsServer {
 		*types.NewCoordinator(),
 	}
 	http.HandleFunc("/", server.wsInit)
-	err := http.ListenAndServe("localhost:8080", nil)
+	fmt.Println("Server started successfully")
+	//err := http.ListenAndServe("localhost:8080", nil)
+	err := http.ListenAndServe("0.0.0.0:8080", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
+
 	return &server
 }
 
